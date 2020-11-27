@@ -1,13 +1,13 @@
 """
 Test cases for datetime utils.
 """
-from datetime import datetime
+from datetime import datetime, timedelta
 from unittest import TestCase
 
 import pytz
 from pytz import timezone
 
-from date_time import datetime_to_float, float_to_datetime
+from date_time import datetime_to_float, float_to_datetime, time_range_chunker
 
 
 class TestDateTime(TestCase):
@@ -68,3 +68,34 @@ class TestDateTime(TestCase):
         actual_dt = float_to_datetime(input_ts, tzinfo=cet_tz)
         self.assertEqual(expected_dt_cet, actual_dt)
         self.assertEqual(expected_dt_utc, actual_dt.astimezone(pytz.UTC))
+
+
+class TestTimeRangeChunker(TestCase):
+    def test_time_chunker(self):
+        """
+        Ensure the time chunker works as expected
+        """
+        start_date = datetime(2020, 10, 10, 15, 30)
+        end_date = datetime(2020, 10, 13, 16, 35)  # 3 days, 1h, 5min later
+        interval = timedelta(days=1)
+
+        expected = [
+            (datetime(2020, 10, 10, 15, 30), datetime(2020, 10, 11, 15, 30)),
+            (datetime(2020, 10, 11, 15, 30), datetime(2020, 10, 12, 15, 30)),
+            (datetime(2020, 10, 12, 15, 30), datetime(2020, 10, 13, 15, 30)),
+            (datetime(2020, 10, 13, 15, 30), datetime(2020, 10, 13, 16, 35)),
+        ]
+
+        actual = list(time_range_chunker(start_date, end_date, interval))
+
+        self.assertListEqual(expected, actual)
+
+    def test_time_chunker_invalid_data(self):
+        """
+        Ensure the time chunker handles unnatural time ranges by returning None
+        """
+        t1 = datetime(2020, 10, 10)
+        t2 = datetime(2020, 10, 11)
+
+        self.assertListEqual(list(time_range_chunker(t1, t1)), [])
+        self.assertListEqual(list(time_range_chunker(t2, t1)), [])

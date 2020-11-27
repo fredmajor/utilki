@@ -2,7 +2,7 @@
 Datetime related utilities.
 """
 import pytz
-from datetime import datetime
+from datetime import datetime, timedelta
 
 
 def datetime_to_float(d):
@@ -74,3 +74,36 @@ def float_to_datetime(timestamp, tzinfo=None):
     if not tzinfo:
         dt = dt.replace(tzinfo=None)
     return dt
+
+
+def time_range_chunker(start_date, end_date, interval=timedelta(days=1)):
+    """
+    Generator. Splits a time range given by `start_date` and `end_date` into
+    chunks of length specified by `interval`. Last chunk has duration <= interval.
+
+    E.g. given:
+    start_date = 2020-10-10 15:30:00,
+    end_date   = 2020-10-12 16:35:00,
+    interval   = 1 day
+
+    it produces a following sequence of 3 tuples:
+    (2020-10-10 15:30:00, 2020-10-11 15:30:00)
+    (2020-10-11 15:30:00, 2020-10-12 15:30:00)
+    (2020-10-12 15:30:00, 2020-10-12 16:35:00)
+
+    Args:
+        start_date (datetime): time range start
+        end_date (datetime): time range end, has to be after the start_date
+        interval (timedelta): single chunk interval
+    """
+    # gracefully ignore unnatural cases
+    if not end_date > start_date:
+        return
+
+    chunk_start = chunk_end = start_date
+    while chunk_end < end_date:
+        chunk_end = chunk_start + interval
+        if chunk_end > end_date:
+            chunk_end = end_date
+        yield chunk_start, chunk_end
+        chunk_start = chunk_end
